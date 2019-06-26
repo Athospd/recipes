@@ -6,8 +6,8 @@
 \title{WoE Transformation}
 \usage{
 step_woe(recipe, ..., role = "predictor", outcome, trained = FALSE,
-  woe_dictionary = NULL, odds_offset = 1e-06, prefix = "woe",
-  skip = FALSE, id = rand_id("woe"))
+  dictionary = NULL, Laplace = 1e-06, prefix = "woe", skip = FALSE,
+  id = rand_id("woe"))
 
 \method{tidy}{step_woe}(x, ...)
 }
@@ -30,14 +30,15 @@ variables will be used as predictors in a model.}
 \item{trained}{A logical to indicate if the quantities for
 preprocessing have been estimated.}
 
-\item{woe_dictionary}{a tbl. A map of levels and woe values. It must
-have the same layout than the output returned from \code{\link[=woe_dictionary]{woe_dictionary()}}.
+\item{dictionary}{a tbl. A map of levels and woe values. It must
+have the same layout than the output returned from \code{\link[=dictionary]{dictionary()}}.
 If `NULL`` the function will build a dictionary with those variables
-passed to \code{...}. See \code{\link[=woe_dictionary]{woe_dictionary()}} for details.}
+passed to \code{...}. See \code{\link[=dictionary]{dictionary()}} for details.}
 
-\item{odds_offset}{Offset value to avoid -Inf/Inf from predictor
+\item{Laplace}{value usually applied to avoid -Inf/Inf from predictor
 category with only one outcome class. Set to 0 to allow Inf/-Inf.
-The default is 1e-6.}
+The default is 1e-6. Also kwon as 'pseudocount' parameter of the
+Laplace smoothing technique.}
 
 \item{prefix}{A character string that will be the prefix to the
 resulting new variables. See notes below}
@@ -80,20 +81,20 @@ numerical predictors, it is advisable to discretize the variables
 prior to running WoE. Here, each variable will be binarized to
 have woe associated later. This can achieved by using \code{\link[=step_discretize]{step_discretize()}}.
 
-The argument \code{odds_offset} is an small quantity added to the
+The argument \code{Laplace} is an small quantity added to the
 proportions of 1's and 0's with the goal to avoid log(p/0) or
 log(0/p) results. The numerical woe versions will have names that
 begin with \code{woe_} followed by the respecttive original name of the
-variables.
+variables. See Chen & Goodman (1996).
 
-One can pass a custom \code{woe_dictionary} tibble to \code{step_woe()}.
+One can pass a custom \code{dictionary} tibble to \code{step_woe()}.
 It must have the same structure of the output from
-\code{woe_dictionary()} (see examples). If not provided it will be
+\code{dictionary()} (see examples). If not provided it will be
 created automatically. The role of this tibble is to store the map
 between the levels of nominal predictor to its woe values. You may
 want to tweak this object with the goal to fix the orders between
 the levels of one given predictor. One easy way to do this is by
-tweaking an output returned from \code{woe_dictionary()}.
+tweaking an output returned from \code{dictionary()}.
 }
 \examples{
 
@@ -117,13 +118,13 @@ tidy(rec, number = 1)
 tidy(woe_models, number = 1)
 
 # Example of custom dictionary + tweaking
-# custom woe_dictionary
-woe_dict_custom <- credit_tr \%>\% woe_dictionary(Job, Home, outcome = Status)
+# custom dictionary
+woe_dict_custom <- credit_tr \%>\% dictionary(Job, Home, outcome = Status)
 woe_dict_custom[4, "woe"] <- 1.23 #tweak
 
 #passing custom dict to step_woe()
 rec_custom <- recipe(Status ~ ., data = credit_tr) \%>\%
-  step_woe(Job, Home, outcome = Status, woe_dictionary = woe_dict_custom) \%>\%
+  step_woe(Job, Home, outcome = Status, dictionary = woe_dict_custom) \%>\%
   prep
 
 rec_custom_baked <- bake(rec_custom, new_data = credit_te)
@@ -134,6 +135,8 @@ rec_custom_baked \%>\% dplyr::filter(woe_Job == 1.23) \%>\% head
 Kullback, S. (1959). \emph{Information Theory and Statistics.} Wiley, New York.
 
 Hastie, T., Tibshirani, R. and Friedman, J. (1986). \emph{Elements of Statistical Learning}, Second Edition, Springer, 2009.
+
+SF Chen, J Goodman (1996). \emph{An empirical study of smoothing techniques for language modeling.} Proceedings of the 34th annual meeting on Association for Computational Linguistics.
 }
 \concept{preprocessing woe transformation_methods}
 \keyword{datagen}
